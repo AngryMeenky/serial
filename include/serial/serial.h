@@ -2,7 +2,8 @@
  * \file serial/serial.h
  * \author  William Woodall <wjwwood@gmail.com>
  * \author  John Harrison   <ash.gti@gmail.com>
- * \version 0.1
+ * \author  John Powell     <john.a.powell@gmail.com>
+ * \version 0.2
  *
  * \section LICENSE
  *
@@ -45,9 +46,6 @@
 #include <stdexcept>
 #include <serial/v8stdint.h>
 
-#define THROW(exceptionClass, message) throw exceptionClass(__FILE__, \
-__LINE__, (message) )
-
 namespace serial {
 
 /*!
@@ -88,6 +86,17 @@ typedef enum {
   flowcontrol_software,
   flowcontrol_hardware
 } flowcontrol_t;
+
+
+typedef enum {
+  serialerror_success = 0,
+  serialerror_argument,
+  serialerror_open_failed,
+  serialerror_io_failed,
+  serialerror_serial,
+  serialerror_not_opened,
+  serialerror_mutex,
+} serialerror_t;
 
 /*!
  * Structure for setting the timeout of the serial port, times are
@@ -173,9 +182,9 @@ public:
    * flowcontrol_none, possible values are: flowcontrol_none,
    * flowcontrol_software, flowcontrol_hardware
    *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::IOException
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * initialization: serialerror_argument, serialerror_open_failed,
+   * serialerror_io_failed
    */
   Serial (const std::string &port = "",
           uint32_t baudrate = 9600,
@@ -183,11 +192,15 @@ public:
           bytesize_t bytesize = eightbits,
           parity_t parity = parity_none,
           stopbits_t stopbits = stopbits_one,
-          flowcontrol_t flowcontrol = flowcontrol_none);
+          flowcontrol_t flowcontrol = flowcontrol_none,
+	  serialerror_t *serialerror = nullptr);
 
   /*! Destructor */
   virtual ~Serial ();
 
+  const std::string &
+  getLastError() const;
+ 
   /*!
    * Opens the serial port as long as the port is set and the port isn't
    * already open.
@@ -197,11 +210,11 @@ public:
    *
    * \see Serial::Serial
    *
-   * \throw std::invalid_argument
-   * \throw serial::SerialException
-   * \throw serial::IOException
+   * \return A serialerror_t representing any errors that occurred during the
+   * attempt at opening the port. Possible values are: serialerror_argument,
+   * serialerror_serial, serialerror_io_failed
    */
-  void
+  serialerror_t
   open ();
 
   /*! Gets the open status of the serial port.
@@ -212,19 +225,19 @@ public:
   isOpen () const;
 
   /*! Closes the serial port. */
-  void
+  serialerror_t
   close ();
 
   /*! Return the number of characters in the buffer. */
   size_t
-  available ();
+  available (serialerror_t *serialerror = nullptr);
 
   /*! Block until there is serial data to read or read_timeout_constant
    * number of milliseconds have elapsed. The return value is true when
    * the function exits with the port in a readable state, false otherwise
    * (due to timeout or select interruption). */
   bool
-  waitReadable ();
+  waitReadable (serialerror_t *serialerror = nullptr);
 
   /*! Block for a period of time corresponding to the transmission time of
    * count characters at present serial settings. This may be used in con-
@@ -254,56 +267,52 @@ public:
    *
    * \param buffer An uint8_t array of at least the requested size.
    * \param size A size_t defining how many bytes to be read.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A size_t representing the number of bytes read as a result of the
    *         call to read.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   size_t
-  read (uint8_t *buffer, size_t size);
+  read (uint8_t *buffer, size_t size, serialerror_t *serialerror = nullptr);
 
   /*! Read a given amount of bytes from the serial port into a give buffer.
    *
    * \param buffer A reference to a std::vector of uint8_t.
    * \param size A size_t defining how many bytes to be read.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A size_t representing the number of bytes read as a result of the
    *         call to read.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   size_t
-  read (std::vector<uint8_t> &buffer, size_t size = 1);
+  read (std::vector<uint8_t> &buffer, size_t size = 1, serialerror_t *serialerror = nullptr);
 
   /*! Read a given amount of bytes from the serial port into a give buffer.
    *
    * \param buffer A reference to a std::string.
    * \param size A size_t defining how many bytes to be read.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A size_t representing the number of bytes read as a result of the
    *         call to read.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   size_t
-  read (std::string &buffer, size_t size = 1);
+  read (std::string &buffer, size_t size = 1, serialerror_t *serialerror = nullptr);
 
   /*! Read a given amount of bytes from the serial port and return a string
    *  containing the data.
    *
    * \param size A size_t defining how many bytes to be read.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A std::string containing the data read from the port.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   std::string
-  read (size_t size = 1);
+  read (size_t size = 1, serialerror_t *serialerror = nullptr);
 
   /*! Reads in a line or until a given delimiter has been processed.
    *
@@ -312,14 +321,14 @@ public:
    * \param buffer A std::string reference used to store the data.
    * \param size A maximum length of a line, defaults to 65536 (2^16)
    * \param eol A string to match against for the EOL.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A size_t representing the number of bytes read.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   size_t
-  readline (std::string &buffer, size_t size = 65536, std::string eol = "\n");
+  readline (std::string &buffer, size_t size = 65536, std::string eol = "\n",
+            serialerror_t *serialerror = nullptr);
 
   /*! Reads in a line or until a given delimiter has been processed.
    *
@@ -327,14 +336,14 @@ public:
    *
    * \param size A maximum length of a line, defaults to 65536 (2^16)
    * \param eol A string to match against for the EOL.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A std::string containing the line.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   std::string
-  readline (size_t size = 65536, std::string eol = "\n");
+  readline (size_t size = 65536, std::string eol = "\n",
+            serialerror_t *serialerror = nullptr);
 
   /*! Reads in multiple lines until the serial port times out.
    *
@@ -342,16 +351,15 @@ public:
    * timeout occurs and return a list of strings.
    *
    * \param size A maximum length of combined lines, defaults to 65536 (2^16)
-   *
    * \param eol A string to match against for the EOL.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened
    *
    * \return A vector<string> containing the lines.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
    */
   std::vector<std::string>
-  readlines (size_t size = 65536, std::string eol = "\n");
+  readlines (size_t size = 65536, std::string eol = "\n",
+             serialerror_t *serialerror = nullptr);
 
   /*! Write a string to the serial port.
    *
@@ -360,66 +368,61 @@ public:
    *
    * \param size A size_t that indicates how many bytes should be written from
    * the given data buffer.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened, serialerror_io_failed
    *
    * \return A size_t representing the number of bytes actually written to
    * the serial port.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
-   * \throw serial::IOException
    */
   size_t
-  write (const uint8_t *data, size_t size);
+  write (const uint8_t *data, size_t size, serialerror_t *serialerror = nullptr);
 
   /*! Write a string to the serial port.
    *
    * \param data A const reference containing the data to be written
    * to the serial port.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened, serialerror_io_failed
    *
    * \return A size_t representing the number of bytes actually written to
    * the serial port.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
-   * \throw serial::IOException
    */
   size_t
-  write (const std::vector<uint8_t> &data);
+  write (const std::vector<uint8_t> &data, serialerror_t *serialerror = nullptr);
 
   /*! Write a string to the serial port.
    *
    * \param data A const reference containing the data to be written
    * to the serial port.
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial, serialerror_not_opened, serialerror_io_failed
    *
    * \return A size_t representing the number of bytes actually written to
    * the serial port.
-   *
-   * \throw serial::PortNotOpenedException
-   * \throw serial::SerialException
-   * \throw serial::IOException
    */
   size_t
-  write (const std::string &data);
+  write (const std::string &data, serialerror_t *serialerror = nullptr);
 
   /*! Sets the serial port identifier.
    *
    * \param port A const std::string reference containing the address of the
    * serial port, which would be something like 'COM1' on Windows and
    * '/dev/ttyS0' on Linux.
-   *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setPort (const std::string &port);
+  setPort (const std::string &port, serialerror_t *serialerror = nullptr);
 
   /*! Gets the serial port identifier.
    *
    * \see Serial::setPort
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   std::string
-  getPort () const;
+  getPort (serialerror_t *serialerror = nullptr) const;
 
   /*! Sets the timeout for reads and writes using the Timeout struct.
    *
@@ -491,11 +494,11 @@ public:
    * 128000, 153600, 230400, 256000, 460800, 500000, 921600
    *
    * \param baudrate An integer that sets the baud rate for the serial port.
-   *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setBaudrate (uint32_t baudrate);
+  setBaudrate (uint32_t baudrate, serialerror_t *serialerror = nullptr);
 
   /*! Gets the baudrate for the serial port.
    *
@@ -503,10 +506,11 @@ public:
    *
    * \see Serial::setBaudrate
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   uint32_t
-  getBaudrate () const;
+  getBaudrate (serialerror_t *serialerror = nullptr) const;
 
   /*! Sets the bytesize for the serial port.
    *
@@ -514,57 +518,63 @@ public:
    * default is eightbits, possible values are: fivebits, sixbits, sevenbits,
    * eightbits
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setBytesize (bytesize_t bytesize);
+  setBytesize (bytesize_t bytesize, serialerror_t *serialerror = nullptr);
 
   /*! Gets the bytesize for the serial port.
    *
    * \see Serial::setBytesize
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   bytesize_t
-  getBytesize () const;
+  getBytesize (serialerror_t *serialerror = nullptr) const;
 
   /*! Sets the parity for the serial port.
    *
    * \param parity Method of parity, default is parity_none, possible values
    * are: parity_none, parity_odd, parity_even
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setParity (parity_t parity);
+  setParity (parity_t parity, serialerror_t *serialerror = nullptr);
 
   /*! Gets the parity for the serial port.
    *
    * \see Serial::setParity
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   parity_t
-  getParity () const;
+  getParity (serialerror_t *serialerror = nullptr) const;
 
   /*! Sets the stopbits for the serial port.
    *
    * \param stopbits Number of stop bits used, default is stopbits_one,
    * possible values are: stopbits_one, stopbits_one_point_five, stopbits_two
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setStopbits (stopbits_t stopbits);
+  setStopbits (stopbits_t stopbits, serialerror_t *serialerror = nullptr);
 
   /*! Gets the stopbits for the serial port.
    *
    * \see Serial::setStopbits
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   stopbits_t
-  getStopbits () const;
+  getStopbits (serialerror_t *serialerror = nullptr) const;
 
   /*! Sets the flow control for the serial port.
    *
@@ -572,46 +582,48 @@ public:
    * possible values are: flowcontrol_none, flowcontrol_software,
    * flowcontrol_hardware
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   void
-  setFlowcontrol (flowcontrol_t flowcontrol);
+  setFlowcontrol (flowcontrol_t flowcontrol, serialerror_t *serialerror = nullptr);
 
   /*! Gets the flow control for the serial port.
    *
    * \see Serial::setFlowcontrol
    *
-   * \throw std::invalid_argument
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_argument
    */
   flowcontrol_t
-  getFlowcontrol () const;
+  getFlowcontrol (serialerror_t *serialerror = nullptr) const;
 
   /*! Flush the input and output buffers */
-  void
+  serialerror_t
   flush ();
 
   /*! Flush only the input buffer */
-  void
+  serialerror_t
   flushInput ();
 
   /*! Flush only the output buffer */
-  void
+  serialerror_t
   flushOutput ();
 
   /*! Sends the RS-232 break signal.  See tcsendbreak(3). */
-  void
+  serialerror_t
   sendBreak (int duration);
 
   /*! Set the break condition to a given level.  Defaults to true. */
-  void
+  serialerror_t
   setBreak (bool level = true);
 
   /*! Set the RTS handshaking line to the given level.  Defaults to true. */
-  void
+  serialerror_t
   setRTS (bool level = true);
 
   /*! Set the DTR handshaking line to the given level.  Defaults to true. */
-  void
+  serialerror_t
   setDTR (bool level = true);
 
   /*!
@@ -626,26 +638,27 @@ public:
    * \return Returns true if one of the lines changed, false if something else
    * occurred.
    *
-   * \throw SerialException
+   * \param serialerror A pointer used to return errors that may occur during
+   * reading: serialerror_serial
    */
   bool
-  waitForChange ();
+  waitForChange (serialerror_t *serialerror = nullptr);
 
   /*! Returns the current status of the CTS line. */
   bool
-  getCTS ();
+  getCTS (serialerror_t *serialerror = nullptr);
 
   /*! Returns the current status of the DSR line. */
   bool
-  getDSR ();
+  getDSR (serialerror_t *serialerror = nullptr);
 
   /*! Returns the current status of the RI line. */
   bool
-  getRI ();
+  getRI (serialerror_t *serialerror = nullptr);
 
   /*! Returns the current status of the CD line. */
   bool
-  getCD ();
+  getCD (serialerror_t *serialerror = nullptr);
 
 private:
   // Disable copy constructors
@@ -662,86 +675,11 @@ private:
 
   // Read common function
   size_t
-  read_ (uint8_t *buffer, size_t size);
+  read_(uint8_t *buffer, size_t size, serialerror_t *serialerror = nullptr);
   // Write common function
   size_t
-  write_ (const uint8_t *data, size_t length);
+  write_(const uint8_t *data, size_t length, serialerror_t *serialerror = nullptr);
 
-};
-
-class SerialException : public std::exception
-{
-  // Disable copy constructors
-  SerialException& operator=(const SerialException&);
-  std::string e_what_;
-public:
-  SerialException (const char *description) {
-      std::stringstream ss;
-      ss << "SerialException " << description << " failed.";
-      e_what_ = ss.str();
-  }
-  SerialException (const SerialException& other) : e_what_(other.e_what_) {}
-  virtual ~SerialException() throw() {}
-  virtual const char* what () const throw () {
-    return e_what_.c_str();
-  }
-};
-
-class IOException : public std::exception
-{
-  // Disable copy constructors
-  IOException& operator=(const IOException&);
-  std::string file_;
-  int line_;
-  std::string e_what_;
-  int errno_;
-public:
-  explicit IOException (std::string file, int line, int errnum)
-    : file_(file), line_(line), errno_(errnum) {
-      std::stringstream ss;
-#if defined(_WIN32) && !defined(__MINGW32__)
-      char error_str [1024];
-      strerror_s(error_str, 1024, errnum);
-#else
-      char * error_str = strerror(errnum);
-#endif
-      ss << "IO Exception (" << errno_ << "): " << error_str;
-      ss << ", file " << file_ << ", line " << line_ << ".";
-      e_what_ = ss.str();
-  }
-  explicit IOException (std::string file, int line, const char * description)
-    : file_(file), line_(line), errno_(0) {
-      std::stringstream ss;
-      ss << "IO Exception: " << description;
-      ss << ", file " << file_ << ", line " << line_ << ".";
-      e_what_ = ss.str();
-  }
-  virtual ~IOException() throw() {}
-  IOException (const IOException& other) : line_(other.line_), e_what_(other.e_what_), errno_(other.errno_) {}
-
-  int getErrorNumber () const { return errno_; }
-
-  virtual const char* what () const throw () {
-    return e_what_.c_str();
-  }
-};
-
-class PortNotOpenedException : public std::exception
-{
-  // Disable copy constructors
-  const PortNotOpenedException& operator=(PortNotOpenedException);
-  std::string e_what_;
-public:
-  PortNotOpenedException (const char * description)  {
-      std::stringstream ss;
-      ss << "PortNotOpenedException " << description << " failed.";
-      e_what_ = ss.str();
-  }
-  PortNotOpenedException (const PortNotOpenedException& other) : e_what_(other.e_what_) {}
-  virtual ~PortNotOpenedException() throw() {}
-  virtual const char* what () const throw () {
-    return e_what_.c_str();
-  }
 };
 
 /*!

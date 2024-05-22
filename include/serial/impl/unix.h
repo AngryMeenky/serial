@@ -48,10 +48,7 @@ namespace serial {
 
 using std::size_t;
 using std::string;
-using std::invalid_argument;
 
-using serial::SerialException;
-using serial::IOException;
 
 class MillisecondTimer {
 public:
@@ -70,128 +67,133 @@ public:
               bytesize_t bytesize,
               parity_t parity,
               stopbits_t stopbits,
-              flowcontrol_t flowcontrol);
+              flowcontrol_t flowcontrol,
+	      serialerror_t *serialerror);
 
   virtual ~SerialImpl ();
 
-  void
-  open ();
+  const std::string &
+  getlastError() const;
 
-  void
-  close ();
+  serialerror_t
+  open();
+
+  serialerror_t
+  close();
 
   bool
-  isOpen () const;
+  isOpen() const;
 
   size_t
-  available ();
+  available(serialerror_t *serialerror = nullptr);
 
   bool
-  waitReadable (uint32_t timeout);
+  waitReadable(uint32_t timeout, serialerror_t *serialerror = nullptr);
 
   void
-  waitByteTimes (size_t count);
+  waitByteTimes(size_t count);
 
   size_t
-  read (uint8_t *buf, size_t size = 1);
+  read(uint8_t *buf, size_t size = 1, serialerror_t *serialerror = nullptr);
 
   size_t
-  write (const uint8_t *data, size_t length);
+  write(const uint8_t *data, size_t length, serialerror_t *serialerror = nullptr);
 
-  void
-  flush ();
+  serialerror_t
+  flush();
 
-  void
-  flushInput ();
+  serialerror_t
+  flushInput();
 
-  void
-  flushOutput ();
+  serialerror_t
+  flushOutput();
 
-  void
-  sendBreak (int duration);
+  serialerror_t
+  sendBreak(int duration);
 
-  void
-  setBreak (bool level);
+  serialerror_t
+  setBreak(bool level);
 
-  void
-  setRTS (bool level);
+  serialerror_t
+  setRTS(bool level);
 
-  void
-  setDTR (bool level);
-
-  bool
-  waitForChange ();
+  serialerror_t
+  setDTR(bool level);
 
   bool
-  getCTS ();
+  waitForChange(serialerror_t *serialerror = nullptr);
 
   bool
-  getDSR ();
+  getCTS(serialerror_t *serialerror = nullptr);
 
   bool
-  getRI ();
+  getDSR(serialerror_t *serialerror = nullptr);
 
   bool
-  getCD ();
+  getRI(serialerror_t *serialerror = nullptr);
+
+  bool
+  getCD(serialerror_t *serialerror = nullptr);
 
   void
-  setPort (const string &port);
+  setPort(const string &port, serialerror_t *serialerror = nullptr);
 
   string
-  getPort () const;
+  getPort(serialerror_t *serialerror = nullptr) const;
 
   void
-  setTimeout (Timeout &timeout);
+  setTimeout(Timeout &timeout);
 
   Timeout
-  getTimeout () const;
+  getTimeout() const;
 
   void
-  setBaudrate (unsigned long baudrate);
+  setBaudrate(unsigned long baudrate, serialerror_t *serialerror = nullptr);
 
   unsigned long
-  getBaudrate () const;
+  getBaudrate(serialerror_t *serialerror = nullptr) const;
 
   void
-  setBytesize (bytesize_t bytesize);
+  setBytesize(bytesize_t bytesize, serialerror_t *serialerror = nullptr);
 
   bytesize_t
-  getBytesize () const;
+  getBytesize(serialerror_t *serialerror = nullptr) const;
 
   void
-  setParity (parity_t parity);
+  setParity(parity_t parity, serialerror_t *serialerror = nullptr);
 
   parity_t
-  getParity () const;
+  getParity(serialerror_t *serialerror = nullptr) const;
 
   void
-  setStopbits (stopbits_t stopbits);
+  setStopbits(stopbits_t stopbits, serialerror_t *serialerror = nullptr);
 
   stopbits_t
-  getStopbits () const;
+  getStopbits(serialerror_t *serialerror = nullptr) const;
 
   void
-  setFlowcontrol (flowcontrol_t flowcontrol);
+  setFlowcontrol(flowcontrol_t flowcontrol, serialerror_t *serialerror = nullptr);
 
   flowcontrol_t
-  getFlowcontrol () const;
+  getFlowcontrol(serialerror_t *serialerror = nullptr) const;
 
-  void
-  readLock ();
+  serialerror_t
+  readLock();
 
-  void
-  readUnlock ();
+  serialerror_t
+  readUnlock();
 
-  void
-  writeLock ();
+  serialerror_t
+  writeLock();
 
-  void
-  writeUnlock ();
+  serialerror_t
+  writeUnlock();
 
 protected:
-  void reconfigurePort ();
+  serialerror_t reconfigurePort();
 
 private:
+  string error_;
   string port_;               // Path to the file descriptor
   int fd_;                    // The current file descriptor
 
