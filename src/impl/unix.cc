@@ -132,7 +132,7 @@ Serial::SerialImpl::~SerialImpl() {
 
 
 const std::string &
-Serial::SerialImpl::getlastError() const {
+Serial::SerialImpl::getLastError() const {
   return error_;
 }
 
@@ -144,6 +144,7 @@ Serial::SerialImpl::open() {
     return serialerror_argument;
   }
   if (is_open_ == true) {
+    error_.assign("Already open");
     return serialerror_serial;
   }
 
@@ -331,29 +332,38 @@ Serial::SerialImpl::reconfigurePort ()
 
   // setup char len
   options.c_cflag &= (tcflag_t) ~CSIZE;
-  if (bytesize_ == eightbits)
+  if (bytesize_ == eightbits) {
     options.c_cflag |= CS8;
-  else if (bytesize_ == sevenbits)
+  }
+  else if (bytesize_ == sevenbits) {
     options.c_cflag |= CS7;
-  else if (bytesize_ == sixbits)
+  }
+  else if (bytesize_ == sixbits) {
     options.c_cflag |= CS6;
-  else if (bytesize_ == fivebits)
+  }
+  else if (bytesize_ == fivebits) {
     options.c_cflag |= CS5;
-  else
+  }
+  else {
     error_.assign("Invalid bytesize");
     return serialerror_argument;
+  }
 
   // setup stopbits
-  if (stopbits_ == stopbits_one)
+  if (stopbits_ == stopbits_one) {
     options.c_cflag &= (tcflag_t) ~(CSTOPB);
-  else if (stopbits_ == stopbits_one_point_five)
+  }
+  else if (stopbits_ == stopbits_one_point_five) {
     // ONE POINT FIVE same as TWO.. there is no POSIX support for 1.5
     options.c_cflag |=  (CSTOPB);
-  else if (stopbits_ == stopbits_two)
+  }
+  else if (stopbits_ == stopbits_two) {
     options.c_cflag |=  (CSTOPB);
-  else
+  }
+  else {
     error_.assign("Invalid stopbits");
     return serialerror_argument;
+  }
 
   // setup parity
   options.c_iflag &= (tcflag_t) ~(INPCK | ISTRIP);
