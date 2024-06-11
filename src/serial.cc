@@ -80,7 +80,7 @@ Serial::~Serial ()
 const std::string &
 Serial::getLastError() const
 {
-  return pimpl_->getlastError();
+  return pimpl_->getLastError();
 }
 
 

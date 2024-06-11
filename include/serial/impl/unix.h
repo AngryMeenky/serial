@@ -73,7 +73,7 @@ public:
   virtual ~SerialImpl ();
 
   const std::string &
-  getlastError() const;
+  getLastError() const;
 
   serialerror_t
   open();
