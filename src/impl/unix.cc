@@ -625,9 +625,9 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
       // Timed out
       break;
     }
-    // Timeout for the next select is whichever is less of the remaining
+    // Timeout for the next select is whichever is greater of the remaining
     // total read timeout and the inter-byte timeout.
-    uint32_t timeout = std::min(static_cast<uint32_t> (timeout_remaining_ms),
+    uint32_t timeout = std::max(static_cast<uint32_t> (timeout_remaining_ms),
                                 timeout_.inter_byte_timeout);
     // Wait for the device to be readable, and then attempt to read.
     if (waitReadable(timeout, &err)) {
@@ -644,15 +644,17 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
       //  Then returning so that select can block again.
       ssize_t bytes_read_now =
         ::read (fd_, buf + bytes_read, size - bytes_read);
+      if(bytes_read_now != (size - bytes_read)) {
+      }
       // read should always return some data as select reported it was
       // ready to read when we get to this point.
       if (bytes_read_now < 1) {
         // Disconnected devices, at least on Linux, show the
         // behavior that they are always ready to read immediately
         // but reading returns nothing.
-	err = serialerror_serial;
+        err = serialerror_serial;
         error_.assign(strerror(errno));
-	break;
+        break;
       }
       // Update bytes_read
       bytes_read += static_cast<size_t> (bytes_read_now);
@@ -666,9 +668,9 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
       }
       // If bytes_read > size then we have over read, which shouldn't happen
       if (bytes_read > size) {
-	err = serialerror_serial;
+        err = serialerror_serial;
         error_.assign("Impossible error: read more that request");
-	break;
+        break;
       }
     }
   }
