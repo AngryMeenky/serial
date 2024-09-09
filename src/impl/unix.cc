@@ -54,8 +54,7 @@ using serial::serialerror_t;
 
 
 MillisecondTimer::MillisecondTimer (const uint32_t millis)
-  : expiry(timespec_now())
-{
+  : expiry(timespec_now()) {
   int64_t tv_nsec = expiry.tv_nsec + (millis * 1e6);
   if (tv_nsec >= 1e9) {
     int64_t sec_diff = tv_nsec / static_cast<int> (1e9);
@@ -66,18 +65,18 @@ MillisecondTimer::MillisecondTimer (const uint32_t millis)
   }
 }
 
+
 int64_t
-MillisecondTimer::remaining ()
-{
+MillisecondTimer::remaining() {
   timespec now(timespec_now());
   int64_t millis = (expiry.tv_sec - now.tv_sec) * 1e3;
   millis += (expiry.tv_nsec - now.tv_nsec) / 1e6;
   return millis;
 }
 
+
 timespec
-MillisecondTimer::timespec_now ()
-{
+MillisecondTimer::timespec_now() {
   timespec time;
 # ifdef __MACH__ // OS X does not have clock_gettime, use clock_get_time
   clock_serv_t cclock;
@@ -93,14 +92,15 @@ MillisecondTimer::timespec_now ()
   return time;
 }
 
+
 timespec
-timespec_from_ms (const uint32_t millis)
-{
+timespec_from_ms(const uint32_t millis) {
   timespec time;
   time.tv_sec = millis / 1e3;
   time.tv_nsec = (millis - (time.tv_sec * 1e3)) * 1e6;
   return time;
 }
+
 
 Serial::SerialImpl::SerialImpl (const string &port, unsigned long baudrate,
                                 bytesize_t bytesize,
@@ -155,7 +155,7 @@ Serial::SerialImpl::open() {
     switch (errno) {
     case EINTR:
       // Recurse because this is a recoverable error.
-      return open ();
+      return open();
     case ENFILE:
     case EMFILE:
       return serialerror_open_failed;
@@ -171,9 +171,8 @@ Serial::SerialImpl::open() {
 
 
 serialerror_t
-Serial::SerialImpl::reconfigurePort ()
-{
-  if (fd_ == -1) {
+Serial::SerialImpl::reconfigurePort() {
+  if(fd_ == -1) {
     error_.assign("Port not open");
     // Can only operate on a valid file descriptor
     return serialerror_not_opened;
@@ -181,7 +180,7 @@ Serial::SerialImpl::reconfigurePort ()
 
   struct termios options; // The options for the file descriptor
 
-  if (tcgetattr(fd_, &options) == -1) {
+  if(tcgetattr(fd_, &options) == -1) {
     error_.assign(strerror(errno));
     return serialerror_io_failed;
   }
@@ -203,7 +202,8 @@ Serial::SerialImpl::reconfigurePort ()
   // setup baud rate
   bool custom_baud = false;
   speed_t baud;
-  switch (baudrate_) {
+
+  switch(baudrate_) {
 #ifdef B0
   case 0: baud = B0; break;
 #endif
@@ -321,6 +321,7 @@ Serial::SerialImpl::reconfigurePort ()
   default:
     custom_baud = true;
   }
+
   if (custom_baud == false) {
 #ifdef _BSD_SOURCE
     ::cfsetspeed(&options, baud);
@@ -332,16 +333,16 @@ Serial::SerialImpl::reconfigurePort ()
 
   // setup char len
   options.c_cflag &= (tcflag_t) ~CSIZE;
-  if (bytesize_ == eightbits) {
+  if(bytesize_ == eightbits) {
     options.c_cflag |= CS8;
   }
-  else if (bytesize_ == sevenbits) {
+  else if(bytesize_ == sevenbits) {
     options.c_cflag |= CS7;
   }
-  else if (bytesize_ == sixbits) {
+  else if(bytesize_ == sixbits) {
     options.c_cflag |= CS6;
   }
-  else if (bytesize_ == fivebits) {
+  else if(bytesize_ == fivebits) {
     options.c_cflag |= CS5;
   }
   else {
@@ -350,14 +351,14 @@ Serial::SerialImpl::reconfigurePort ()
   }
 
   // setup stopbits
-  if (stopbits_ == stopbits_one) {
+  if(stopbits_ == stopbits_one) {
     options.c_cflag &= (tcflag_t) ~(CSTOPB);
   }
-  else if (stopbits_ == stopbits_one_point_five) {
+  else if(stopbits_ == stopbits_one_point_five) {
     // ONE POINT FIVE same as TWO.. there is no POSIX support for 1.5
     options.c_cflag |=  (CSTOPB);
   }
-  else if (stopbits_ == stopbits_two) {
+  else if(stopbits_ == stopbits_two) {
     options.c_cflag |=  (CSTOPB);
   }
   else {
@@ -367,25 +368,27 @@ Serial::SerialImpl::reconfigurePort ()
 
   // setup parity
   options.c_iflag &= (tcflag_t) ~(INPCK | ISTRIP);
-  if (parity_ == parity_none) {
+  if(parity_ == parity_none) {
     options.c_cflag &= (tcflag_t) ~(PARENB | PARODD);
-  } else if (parity_ == parity_even) {
+  }
+  else if(parity_ == parity_even) {
     options.c_cflag &= (tcflag_t) ~(PARODD);
     options.c_cflag |=  (PARENB);
-  } else if (parity_ == parity_odd) {
+  }
+  else if(parity_ == parity_odd) {
     options.c_cflag |=  (PARENB | PARODD);
   }
 #ifdef CMSPAR
-  else if (parity_ == parity_mark) {
+  else if(parity_ == parity_mark) {
     options.c_cflag |=  (PARENB | CMSPAR | PARODD);
   }
-  else if (parity_ == parity_space) {
+  else if(parity_ == parity_space) {
     options.c_cflag |=  (PARENB | CMSPAR);
     options.c_cflag &= (tcflag_t) ~(PARODD);
   }
 #else
   // CMSPAR is not defined on OSX. So do not support mark or space parity.
-  else if (parity_ == parity_mark || parity_ == parity_space) {
+  else if(parity_ == parity_mark || parity_ == parity_space) {
     error_.assign("Invalid parity");
     return serialerror_argument;
   }
@@ -396,43 +399,51 @@ Serial::SerialImpl::reconfigurePort ()
   }
 
   // setup flow control
-  if (flowcontrol_ == flowcontrol_none) {
+  if(flowcontrol_ == flowcontrol_none) {
     xonxoff_ = false;
     rtscts_ = false;
   }
-  if (flowcontrol_ == flowcontrol_software) {
+  else if(flowcontrol_ == flowcontrol_software) {
     xonxoff_ = true;
     rtscts_ = false;
   }
-  if (flowcontrol_ == flowcontrol_hardware) {
+  else if(flowcontrol_ == flowcontrol_hardware) {
     xonxoff_ = false;
     rtscts_ = true;
   }
   // xonxoff
 #ifdef IXANY
-  if (xonxoff_)
+  if(xonxoff_) {
     options.c_iflag |=  (IXON | IXOFF); //|IXANY)
-  else
+  }
+  else {
     options.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
+  }
 #else
-  if (xonxoff_)
+  if(xonxoff_) {
     options.c_iflag |=  (IXON | IXOFF);
-  else
+  }
+  else {
     options.c_iflag &= (tcflag_t) ~(IXON | IXOFF);
+  }
 #endif
   // rtscts
 #ifdef CRTSCTS
-  if (rtscts_)
+  if(rtscts_) {
     options.c_cflag |=  (CRTSCTS);
-  else
+  }
+  else {
     options.c_cflag &= (unsigned long) ~(CRTSCTS);
+  }
 #elif defined CNEW_RTSCTS
-  if (rtscts_)
+  if(rtscts_) {
     options.c_cflag |=  (CNEW_RTSCTS);
-  else
+  }
+  else {
     options.c_cflag &= (unsigned long) ~(CNEW_RTSCTS);
+  }
 #else
-#error "OS Support seems wrong."
+#  error "OS Support seems wrong."
 #endif
 
   // http://www.unixwiz.net/techtips/termios-vmin-vtime.html
@@ -443,10 +454,10 @@ Serial::SerialImpl::reconfigurePort ()
   options.c_cc[VTIME] = 0;
 
   // activate settings
-  ::tcsetattr (fd_, TCSANOW, &options);
+  ::tcsetattr(fd_, TCSANOW, &options);
 
   // apply custom baud rate, if any
-  if (custom_baud == true) {
+  if(custom_baud == true) {
     // OS X support
 #if defined(MAC_OS_X_VERSION_10_4) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_4)
     // Starting with Tiger, the IOSSIOSPEED ioctl can be used to set arbitrary baud rates
@@ -455,7 +466,7 @@ Serial::SerialImpl::reconfigurePort ()
     // and output speed.
     speed_t new_baud = static_cast<speed_t> (baudrate_);
     // PySerial uses IOSSIOSPEED=0x80045402
-    if (-1 == ioctl (fd_, IOSSIOSPEED, &new_baud, 1)) {
+    if(-1 == ioctl(fd_, IOSSIOSPEED, &new_baud, 1)) {
       error_.assign(strerror(errno));
       return serialerror_io_failed;
     }
@@ -463,7 +474,7 @@ Serial::SerialImpl::reconfigurePort ()
 #elif defined(__linux__) && defined (TIOCSSERIAL)
     struct serial_struct ser;
 
-    if (-1 == ioctl (fd_, TIOCGSERIAL, &ser)) {
+    if(-1 == ioctl(fd_, TIOCGSERIAL, &ser)) {
       error_.assign(strerror(errno));
       return serialerror_io_failed;
     }
@@ -474,7 +485,7 @@ Serial::SerialImpl::reconfigurePort ()
     ser.flags &= ~ASYNC_SPD_MASK;
     ser.flags |= ASYNC_SPD_CUST;
 
-    if (-1 == ioctl (fd_, TIOCSSERIAL, &ser)) {
+    if(-1 == ioctl(fd_, TIOCSSERIAL, &ser)) {
       error_.assign(strerror(errno));
       return serialerror_io_failed;
     }
@@ -490,7 +501,7 @@ Serial::SerialImpl::reconfigurePort ()
 
   // Compensate for the stopbits_one_point_five enum being equal to int 3,
   // and not 1.5.
-  if (stopbits_ == stopbits_one_point_five) {
+  if(stopbits_ == stopbits_one_point_five) {
     byte_time_ns_ += ((1.5 - stopbits_one_point_five) * bit_time_ns);
   }
  
@@ -500,17 +511,17 @@ Serial::SerialImpl::reconfigurePort ()
 
 serialerror_t
 Serial::SerialImpl::close() {
-  if (is_open_ == true) {
-    if (fd_ != -1) {
-      int ret;
-      ret = ::close (fd_);
-      if (ret == 0) {
+  if(is_open_ == true) {
+    if(fd_ != -1) {
+      if(::close(fd_) == 0) {
         fd_ = -1;
-      } else {
+      }
+      else {
         error_.assign(strerror(errno));
         return serialerror_io_failed;
       }
     }
+
     is_open_ = false;
   }
 
@@ -528,8 +539,9 @@ Serial::SerialImpl::available(serialerror_t *serialerror) {
   if (!is_open_) {
     return 0;
   }
+
   int count = 0;
-  if (-1 == ioctl (fd_, TIOCINQ, &count)) {
+  if(-1 == ioctl(fd_, TIOCINQ, &count)) {
     error_.assign(strerror(errno));
     if(serialerror != nullptr) {
       *serialerror = serialerror_io_failed;
@@ -540,8 +552,7 @@ Serial::SerialImpl::available(serialerror_t *serialerror) {
 }
 
 bool
-Serial::SerialImpl::waitReadable (uint32_t timeout, serialerror_t *serialerror)
-{
+Serial::SerialImpl::waitReadable(uint32_t timeout, serialerror_t *serialerror) {
   // Setup a select call to block for serial data or a timeout
   fd_set readfds;
   FD_ZERO (&readfds);
@@ -549,34 +560,38 @@ Serial::SerialImpl::waitReadable (uint32_t timeout, serialerror_t *serialerror)
   timespec timeout_ts (timespec_from_ms (timeout));
   int r = pselect (fd_ + 1, &readfds, NULL, NULL, &timeout_ts, NULL);
 
-  if (r < 0) {
+  if(r < 0) {
     // Select was interrupted
-    if (errno == EINTR) {
+    if(errno == EINTR) {
       if(serialerror != nullptr) {
         *serialerror = serialerror_success;
       }
     }
+
     // Otherwise there was some error
     if(serialerror != nullptr) {
       *serialerror = serialerror_io_failed;
     }
+
     error_.assign(strerror(errno));
     return false;
   }
 
   // Timeout occurred
-  if (r == 0) {
+  if(r == 0) {
     if(serialerror != nullptr) {
       *serialerror = serialerror_success;
     }
+
     return false;
   }
 
   // This shouldn't happen, if r > 0 our fd has to be in the list!
-  if (!FD_ISSET (fd_, &readfds)) {
+  if(!FD_ISSET(fd_, &readfds)) {
     if(serialerror != nullptr) {
       *serialerror = serialerror_io_failed;
     }
+
     error_.assign(strerror(errno));
     return false;
   }
@@ -597,7 +612,7 @@ size_t
 Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror) {
   size_t bytes_read = 0;
   // If the port is not open, throw
-  if (!is_open_) {
+  if(!is_open_) {
     if(serialerror != nullptr) {
       *serialerror = serialerror_not_opened;
     }
@@ -613,7 +628,7 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
   // Pre-fill buffer with available bytes
   {
     ssize_t bytes_read_now = ::read (fd_, buf, size);
-    if (bytes_read_now > 0) {
+    if(bytes_read_now > 0) {
       bytes_read = bytes_read_now;
     }
   }
@@ -621,7 +636,7 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
   serialerror_t err = serialerror_success;
   while(err == serialerror_success && bytes_read < size) {
     int64_t timeout_remaining_ms = total_timeout.remaining();
-    if (timeout_remaining_ms <= 0) {
+    if(timeout_remaining_ms <= 0) {
       // Timed out
       break;
     }
@@ -630,25 +645,22 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
     uint32_t timeout = std::max(static_cast<uint32_t> (timeout_remaining_ms),
                                 timeout_.inter_byte_timeout);
     // Wait for the device to be readable, and then attempt to read.
-    if (waitReadable(timeout, &err)) {
+    if(waitReadable(timeout, &err)) {
       // If it's a fixed-length multi-byte read, insert a wait here so that
       // we can attempt to grab the whole thing in a single IO call. Skip
       // this wait if a non-max inter_byte_timeout is specified.
-      if (size > 1 && timeout_.inter_byte_timeout == Timeout::max()) {
+      if(size > 1 && timeout_.inter_byte_timeout == Timeout::max()) {
         size_t bytes_available = available();
-        if (bytes_available + bytes_read < size) {
+        if(bytes_available + bytes_read < size) {
           waitByteTimes(size - (bytes_available + bytes_read));
         }
       }
       // This should be non-blocking returning only what is available now
       //  Then returning so that select can block again.
-      ssize_t bytes_read_now =
-        ::read (fd_, buf + bytes_read, size - bytes_read);
-      if(bytes_read_now != (size - bytes_read)) {
-      }
+      ssize_t bytes_read_now = ::read (fd_, buf + bytes_read, size - bytes_read);
       // read should always return some data as select reported it was
       // ready to read when we get to this point.
-      if (bytes_read_now < 1) {
+      if(bytes_read_now < 1) {
         // Disconnected devices, at least on Linux, show the
         // behavior that they are always ready to read immediately
         // but reading returns nothing.
@@ -659,15 +671,15 @@ Serial::SerialImpl::read (uint8_t *buf, size_t size, serialerror_t *serialerror)
       // Update bytes_read
       bytes_read += static_cast<size_t> (bytes_read_now);
       // If bytes_read == size then we have read everything we need
-      if (bytes_read == size) {
+      if(bytes_read == size) {
         break;
       }
       // If bytes_read < size then we have more to read
-      if (bytes_read < size) {
+      if(bytes_read < size) {
         continue;
       }
       // If bytes_read > size then we have over read, which shouldn't happen
-      if (bytes_read > size) {
+      if(bytes_read > size) {
         err = serialerror_serial;
         error_.assign("Impossible error: read more that request");
         break;
@@ -810,8 +822,11 @@ Serial::SerialImpl::getPort(serialerror_t *serialerror) const {
 
 
 void
-Serial::SerialImpl::setTimeout(serial::Timeout &timeout) {
+Serial::SerialImpl::setTimeout(serial::Timeout &timeout, serialerror_t *serialerror) {
   timeout_ = timeout;
+  if(serialerror != nullptr) {
+    *serialerror = serialerror_success;
+  }
 }
 
 

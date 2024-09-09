@@ -62,15 +62,15 @@ private:
 
 class serial::Serial::SerialImpl {
 public:
-  SerialImpl (const string &port,
-              unsigned long baudrate,
-              bytesize_t bytesize,
-              parity_t parity,
-              stopbits_t stopbits,
-              flowcontrol_t flowcontrol,
-	      serialerror_t *serialerror);
+  SerialImpl(const string &port,
+             unsigned long baudrate,
+             bytesize_t bytesize,
+             parity_t parity,
+             stopbits_t stopbits,
+             flowcontrol_t flowcontrol,
+             serialerror_t *serialerror);
 
-  virtual ~SerialImpl ();
+  virtual ~SerialImpl();
 
   const std::string &
   getLastError() const;
