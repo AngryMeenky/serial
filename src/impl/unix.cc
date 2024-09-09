@@ -831,7 +831,11 @@ Serial::SerialImpl::setTimeout(serial::Timeout &timeout, serialerror_t *serialer
 
 
 serial::Timeout
-Serial::SerialImpl::getTimeout() const {
+Serial::SerialImpl::getTimeout(serialerror_t *serialerror) const {
+  if(serialerror != nullptr) {
+    *serialerror = serialerror_success;
+  }
+
   return timeout_;
 }
 
@@ -1058,28 +1062,28 @@ bool
 Serial::SerialImpl::waitForChange(serialerror_t *serialerror) {
 #ifndef TIOCMIWAIT
 
-while (is_open_ == true) {
-
+while(is_open_ == true) {
     int status;
 
-    if(-1 == ioctl (fd_, TIOCMGET, &status)) {
+    if(-1 == ioctl(fd_, TIOCMGET, &status)) {
       if(serialerror != nullptr) {
         *serialerror = serialerror_serial;
       }
 
-    error_.assign(strerror(errno));
+      error_.assign(strerror(errno));
       return false;
     }
     else {
-        if (0 != (status & TIOCM_CTS)
-         || 0 != (status & TIOCM_DSR)
-         || 0 != (status & TIOCM_RI)
-         || 0 != (status & TIOCM_CD)) {
-          if(serialerror != nullptr) {
-            *serialerror = serialerror_success;
-          }
-          return true;
+      if(0 != (status & TIOCM_CTS)
+      || 0 != (status & TIOCM_DSR)
+      || 0 != (status & TIOCM_RI)
+      || 0 != (status & TIOCM_CD)) {
+        if(serialerror != nullptr) {
+          *serialerror = serialerror_success;
         }
+
+        return true;
+      }
     }
 
     usleep(1000);
@@ -1088,11 +1092,12 @@ while (is_open_ == true) {
   if(serialerror != nullptr) {
     *serialerror = serialerror_success;
   }
+
   return false;
 #else
   int command = (TIOCM_CD | TIOCM_DSR | TIOCM_RI | TIOCM_CTS);
 
-  if (-1 == ioctl (fd_, TIOCMIWAIT, &command)) {
+  if(-1 == ioctl(fd_, TIOCMIWAIT, &command)) {
     if(serialerror != nullptr) {
       *serialerror = serialerror_serial;
     }
@@ -1104,6 +1109,7 @@ while (is_open_ == true) {
   if(serialerror != nullptr) {
     *serialerror = serialerror_success;
   }
+
   return true;
 #endif
 }

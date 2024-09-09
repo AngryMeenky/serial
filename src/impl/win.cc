@@ -2,6 +2,7 @@
 
 /* Copyright 2012 William Woodall and John Harrison */
 
+#include <codecvt>
 #include <sstream>
 
 #include "serial/impl/win.h"
@@ -122,7 +123,7 @@ Serial::SerialImpl::reconfigurePort() {
 
   if(!GetCommState(fd_, &dcbSerialParams)) {
     //error getting state
-    error_.assign"Error getting the serial port state.");
+    error_.assign("Error getting the serial port state.");
     return serialerror_io_failed;
   }
 
@@ -442,7 +443,7 @@ Serial::SerialImpl::getPort(serialerror_t *serialerror) const {
     *serialerror = serialerror_success;
   }
 
-  return string(port_.begin(), port_.end());
+  return std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(port_);
 }
 
 
@@ -581,7 +582,7 @@ Serial::SerialImpl::setFlowcontrol(serial::flowcontrol_t flowcontrol, serialerro
 
 
 serial::flowcontrol_t
-Serial::SerialImpl::getFlowcontrol() const {
+Serial::SerialImpl::getFlowcontrol(serialerror_t *serialerror) const {
   if(serialerror != nullptr) {
     *serialerror = serialerror_success;
   }
@@ -669,7 +670,7 @@ Serial::SerialImpl::setDTR(bool level) {
     return serialerror_not_opened;
   }
 
-  EscapeCommFunction(fd_, level ? SETDTS : CLRDTS);
+  EscapeCommFunction(fd_, level ? SETDTR : CLRDTR);
   return serialerror_success;
 }
 

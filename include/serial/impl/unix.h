@@ -142,10 +142,10 @@ public:
   getPort(serialerror_t *serialerror = nullptr) const;
 
   void
-  setTimeout(Timeout &timeout);
+  setTimeout(Timeout &timeout, serialerror_t *serialerror = nullptr);
 
   Timeout
-  getTimeout() const;
+  getTimeout(serialerror_t *serialerror = nullptr) const;
 
   void
   setBaudrate(unsigned long baudrate, serialerror_t *serialerror = nullptr);
